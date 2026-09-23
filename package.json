@@ -1,0 +1,16 @@
+{
+  "name": "pambu-neon-snake",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PAMBU — a zero-dependency neon snake game. Play it in the browser, test the logic in Node.",
+  "main": "game.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": ["snake", "game", "canvas", "no-dependencies"],
+  "license": "MIT"
+}
