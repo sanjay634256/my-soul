@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#0d0f11" />
+<meta name="description" content="FIRE ZONE — a 3D open-world vehicular combat game. Drive, shoot, extract." />
+<title>FIRE ZONE · Open World Vehicular Combat</title>
+<link rel="stylesheet" href="styles.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88'>🔥</text></svg>" />
+</head>
+<body>
+  <canvas id="scene"></canvas>
+  <canvas id="hud"></canvas>
+
+  <!-- ============ touch controls (shown on coarse pointers) ============ -->
+  <div id="touch-ui" aria-hidden="true">
+    <div id="touch-pad" data-btn="pad">
+      <div id="touch-knob"></div>
+    </div>
+
+    <div class="touch-right">
+      <button class="tbtn t-fire" data-btn="fire" type="button" aria-label="Fire">FIRE</button>
+      <div class="tbtn-row">
+        <button class="tbtn" data-btn="drift" type="button" aria-label="Handbrake drift">DRIFT</button>
+        <button class="tbtn" data-btn="reload" type="button" aria-label="Reload">RLD</button>
+      </div>
+      <div class="tbtn-row">
+        <button class="tbtn t-pedal" data-btn="brake" type="button" aria-label="Brake">BRAKE</button>
+        <button class="tbtn t-pedal t-gas" data-btn="gas" type="button" aria-label="Accelerate">GAS</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================ screens ============================= -->
+  <div id="screen-start" class="screen">
+    <div class="card">
+      <p class="eyebrow">OPERATION</p>
+      <h1 class="title">FIRE<span>ZONE</span></h1>
+      <p class="tagline">Open-world vehicular combat. Drive fast. Shoot straight. Get out alive.</p>
+
+      <div class="brief">
+        <div class="brief-row"><span class="k">OBJECTIVE</span><span>Eliminate <b>12 hostiles</b>, then hold the extraction zone</span></div>
+        <div class="brief-row"><span class="k">THREAT</span><span>Hostile infantry engage on sight. Red barrels detonate.</span></div>
+        <div class="brief-row"><span class="k">VEHICLE</span><span>Armoured pickup, roof-mounted .50 cal</span></div>
+      </div>
+
+      <div class="keys">
+        <div class="key-row"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>drive</span></div>
+        <div class="key-row"><kbd>SPACE</kbd><span>fire turret</span></div>
+        <div class="key-row"><kbd>SHIFT</kbd><span>handbrake drift</span></div>
+        <div class="key-row"><kbd>R</kbd><span>reload</span></div>
+        <div class="key-row"><kbd>ESC</kbd><span>pause</span></div>
+      </div>
+
+      <button id="btn-start" class="primary" type="button">DEPLOY</button>
+      <p class="hint">Audio unlocks on the first tap. Headshots do double damage.</p>
+    </div>
+  </div>
+
+  <div id="screen-pause" class="screen" hidden>
+    <div class="card narrow">
+      <h2 class="title small">PAUSED</h2>
+      <button id="btn-resume" class="primary" type="button">RESUME</button>
+      <button id="btn-restart" class="ghost" type="button">ABANDON &amp; RESTART</button>
+    </div>
+  </div>
+
+  <div id="screen-over" class="screen" hidden>
+    <div class="card narrow">
+      <h2 id="over-title" class="title small">MISSION COMPLETE</h2>
+      <div id="over-stats" class="stats"></div>
+      <button id="btn-again" class="primary" type="button">REDEPLOY</button>
+    </div>
+  </div>
+
+  <button id="btn-sound" class="sound-btn" type="button" aria-label="Toggle sound">🔊</button>
+
+  <script type="module" src="js/main.mjs"></script>
+</body>
+</html>

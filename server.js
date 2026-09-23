@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Zero-dependency static file server for PAMBU.
+ * Zero-dependency static file server for the games in this repo.
  * Binds to 0.0.0.0 so it works behind proxies and in preview sandboxes.
  *
  *   node server.js            # http://0.0.0.0:3000
@@ -20,6 +20,7 @@ const TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
@@ -27,6 +28,7 @@ const TYPES = {
   '.ico': 'image/x-icon',
   '.woff2': 'font/woff2',
   '.txt': 'text/plain; charset=utf-8',
+  '.md': 'text/markdown; charset=utf-8',
   '.map': 'application/json; charset=utf-8',
 };
 
@@ -68,5 +70,7 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`PAMBU is live  ->  http://${HOST}:${PORT}`);
+  console.log(`Serving ${ROOT}`);
+  console.log(`  FIRE ZONE  ->  http://${HOST}:${PORT}/`);
+  console.log(`  PAMBU      ->  http://${HOST}:${PORT}/pambu/`);
 });
