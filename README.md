@@ -35,9 +35,29 @@ sandboxed preview environments. Override with `PORT=8080 node server.js`.
 | `Space` | Start / pause / resume |
 | `R` | Restart |
 | `M` | Mute |
-| Swipe / tap | Mobile steering, pause, restart |
+| Swipe | Mobile steering (anywhere on the board) |
+| Tap | Start / restart |
+| ⏸ button | Pause / resume |
 
-Touch devices get an on-screen D-pad automatically.
+Touch devices get an on-screen D-pad automatically, and the board shrinks to
+whatever vertical space is left so the pad is never pushed off-screen.
+
+### Mobile notes
+
+Four things that only break on a phone, all handled:
+
+- **iOS Safari private mode** throws on every `localStorage` access. All reads
+  and writes go through a guarded wrapper, so a lost high score never turns
+  into a crashed `gameOver()`.
+- **iOS starts an `AudioContext` suspended** and only lets it resume inside a
+  user gesture. Every gesture handler (key, D-pad, swipe, buttons) calls
+  `unlockAudio()`, otherwise the game is silently mute.
+- **A short swipe is not a pause gesture.** Sub-threshold flicks are common on
+  touchscreens, and pausing a live run by accident is worse than ignoring the
+  input — use the ⏸ button.
+- **The mobile URL bar resizes the viewport.** The layout is flex + `100dvh`,
+  and a `ResizeObserver` on the stage re-measures the canvas on rotation and
+  on URL-bar show/hide.
 
 ## Rules
 
@@ -53,12 +73,15 @@ High score and mute state persist in `localStorage`.
 ## Project layout
 
 ```
-index.html      Markup + HUD
-styles.css      Neon theme, responsive layout, touch controls
-game.js         Part 1: pure game logic  (Node + browser)
-                Part 2: canvas render / input / audio  (browser only)
-server.js       Zero-dependency static file server
-test/           Unit tests against the real exported logic
+index.html             Markup + HUD
+styles.css             Neon theme, responsive + touch layout
+game.js                Part 1: pure game logic  (Node + browser)
+                       Part 2: canvas render / input / audio  (browser only)
+server.js              Zero-dependency static file server
+test/game.test.js      Logic tests against the real exported module
+test/browser.smoke.test.js   Desktop: DOM stub drives boot -> play -> die
+test/browser.mobile.test.js  Mobile: throwing storage, suspended audio, swipe
+test/helpers/dom.js    Shared DOM/canvas/AudioContext stub
 ```
 
 `game.js` splits the simulation from the rendering on purpose: everything
@@ -71,8 +94,10 @@ unchanged under Node for testing.
 npm test
 ```
 
-18 tests cover the shipped module (`require('../game.js')` — nothing is
-re-implemented in the tests):
+43 tests cover the shipped module (`require('../game.js')` — nothing is
+re-implemented in the tests).
+
+**Logic** (`test/game.test.js`):
 
 - initial state, head-first body orientation
 - food never spawns on the snake, including when `rand()` returns exactly `1.0`
@@ -83,6 +108,29 @@ re-implemented in the tests):
 - speed ramp and the `MIN_SPEED_MS` clamp
 - the status machine (`ready → running → paused → over → won`)
 - a full board is a win, not a crash
+
+**Desktop browser layer** (`test/browser.smoke.test.js`) — stubs the DOM and
+drives the real canvas/input code, asserting on actual HUD values:
+
+- boot renders, canvas ops are issued, overlay shows
+- Space starts, arrows/WASD/D-pad steer, rejected reversals never land
+- eating updates score + length in the DOM
+- pause/resume, restart, mute persistence
+- wall death writes the best score to `localStorage`
+
+**Mobile browser layer** (`test/browser.mobile.test.js`) — separate process
+with a *throwing* `localStorage` and a *suspended* `AudioContext`:
+
+- boot, mute and `gameOver()` all survive storage throwing
+- every gesture path resumes the suspended `AudioContext`
+- swipe steering on each axis, diagonal swipes resolve to the dominant axis
+- a sub-threshold flick does **not** pause a live run
+- the ⏸ button pauses/resumes and its icon tracks the state
+- long-press cannot open the native callout menu
+
+Every one of these is mutation-tested: seeding the corresponding bug
+(unguarded `setItem`, missing `resume()`, tap-to-pause, listeners on the
+canvas instead of the stage, D-pad not unlocking audio) fails the suite.
 
 ## Tuning
 

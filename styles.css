@@ -14,6 +14,8 @@
 html, body {
   margin: 0;
   height: 100%;
+  /* dvh tracks the mobile URL bar; vh does not. Fallback for old browsers. */
+  height: 100dvh;
   background:
     radial-gradient(1200px 700px at 50% -10%, #12203a 0%, transparent 60%),
     var(--bg);
@@ -21,10 +23,16 @@ html, body {
   font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, "Noto Sans Tamil", sans-serif;
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  /* kill the iOS blue flash + long-press callout on game controls */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .shell {
-  min-height: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -32,7 +40,10 @@ html, body {
   padding: 18px 16px 26px;
   max-width: 720px;
   margin: 0 auto;
+  min-height: 0;
 }
+
+.top-actions { display: flex; gap: 8px; }
 
 /* ---------------- top bar ---------------- */
 .topbar {
@@ -118,8 +129,11 @@ html, body {
 /* ---------------- stage ---------------- */
 .stage {
   position: relative;
-  width: min(92vw, 72vh, 620px);
-  height: min(92vw, 72vh, 620px);
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: 620px;
+  max-height: 620px;
   border-radius: 18px;
   padding: 0;
   display: grid;
@@ -237,10 +251,34 @@ kbd {
 
 /* ---------------- touch devices ---------------- */
 @media (hover: none) and (pointer: coarse) {
-  .pad { display: flex; }
+  html, body { overflow: hidden; }
+
+  .pad { display: flex; flex: 0 0 auto; }
   .legend { display: none; }
-  .shell { gap: 10px; padding-top: 12px; }
-  .stat .value { font-size: 19px; }
+  .shell { gap: 8px; padding: 10px 12px 14px; }
+  .logo { font-size: 22px; }
+  .logo .tamil { font-size: 25px; }
+  .stat { padding: 6px 4px; border-radius: 10px; }
+  .stat .value { font-size: 18px; }
+  .stat .label { font-size: 8.5px; letter-spacing: 1.2px; }
+  .icon-btn { width: 38px; height: 38px; }
+  .topbar { flex: 0 0 auto; }
+  .hud { flex: 0 0 auto; }
+
+  /* 44px is the minimum comfortable touch target; 58px is a thumb target. */
+  .pad-btn { width: 62px; height: 54px; font-size: 18px; }
+}
+
+/* Short viewports (landscape phones): shrink the pad, keep the board square. */
+@media (max-height: 520px) {
+  .shell { gap: 6px; padding: 6px 10px 8px; }
+  .logo { font-size: 18px; }
+  .logo .tamil { font-size: 20px; }
+  .stat .value { font-size: 15px; }
+  .stat { padding: 4px 2px; }
+  .pad-btn { width: 54px; height: 40px; font-size: 15px; }
+  .pad { gap: 4px; }
+  .pad-row { gap: 4px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

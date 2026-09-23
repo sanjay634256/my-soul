@@ -203,12 +203,34 @@ if (typeof window !== 'undefined') {
   const overlayBody = document.getElementById('overlay-body');
   const overlayHint = document.getElementById('overlay-hint');
   const soundBtn = document.getElementById('sound-btn');
+  const pauseBtn = document.getElementById('pause-btn');
+  const stage = document.getElementById('stage');
 
   const BEST_KEY = 'pambu.best';
 
+  /* Safari private mode throws on localStorage access. The game must survive
+     that — a lost high score is fine, a crashed gameOver() is not. */
+  const store = {
+    get(k, fallback) {
+      try {
+        const v = localStorage.getItem(k);
+        return v === null || v === undefined ? fallback : v;
+      } catch (_) {
+        return fallback;
+      }
+    },
+    set(k, v) {
+      try {
+        localStorage.setItem(k, String(v));
+      } catch (_) {
+        /* storage unavailable — carry on in-memory */
+      }
+    },
+  };
+
   let game = L.createGame();
-  let best = Number(localStorage.getItem(BEST_KEY) || 0);
-  let muted = localStorage.getItem('pambu.muted') === '1';
+  let best = Number(store.get(BEST_KEY, 0)) || 0;
+  let muted = store.get('pambu.muted', '0') === '1';
   let lastTick = 0;
   let particles = [];
   let shake = 0;
@@ -216,6 +238,26 @@ if (typeof window !== 'undefined') {
 
   /* --------------------------- audio ---------------------------------- */
   let audioCtx = null;
+
+  /**
+   * iOS/Android start an AudioContext suspended and only let it resume inside
+   * a user gesture. Call this from every gesture handler so sound actually
+   * works on phones, not just on desktop.
+   */
+  function unlockAudio() {
+    if (muted) return;
+    try {
+      const Ctor = window.AudioContext || window.webkitAudioContext;
+      if (!Ctor) return;
+      audioCtx = audioCtx || new Ctor();
+      if (audioCtx.state === 'suspended' && audioCtx.resume) {
+        const p = audioCtx.resume();
+        if (p && p.catch) p.catch(() => {});
+      }
+    } catch (_) {
+      /* audio is a nicety, never a failure */
+    }
+  }
 
   function beep(freq, dur, type, gain) {
     if (muted) return;
@@ -410,6 +452,7 @@ if (typeof window !== 'undefined') {
     lengthEl.textContent = game.snake.length;
     soundBtn.textContent = muted ? '🔇' : '🔊';
     soundBtn.setAttribute('aria-pressed', String(!muted));
+    pauseBtn.textContent = game.status === 'paused' ? '▶' : '⏸';
   }
 
   function showOverlay(title, body, hint) {
@@ -437,6 +480,29 @@ if (typeof window !== 'undefined') {
     L.start(game);
     lastTick = performance.now();
     hideOverlay();
+    syncHud();
+  }
+
+  /** Space / tap-to-play: start a fresh run, restarting if the last one ended. */
+  function startOrRestart() {
+    if (game.status === 'over' || game.status === 'won') reset();
+    begin();
+  }
+
+  /** Pause <-> resume, keeping the overlay and the pause button in sync. */
+  function togglePauseUI(hint) {
+    if (game.status === 'ready') { begin(); return; }
+    if (game.status === 'over' || game.status === 'won') return;
+
+    if (game.status === 'running') {
+      L.pause(game);
+      showOverlay('⏸ Paused', 'Score ' + game.score, hint || 'SPACE to resume');
+    } else {
+      L.resume(game);
+      lastTick = performance.now();
+      hideOverlay();
+    }
+    syncHud();
   }
 
   function gameOver() {
@@ -446,7 +512,7 @@ if (typeof window !== 'undefined') {
     burst((head.x + 0.5) * cell, (head.y + 0.5) * cell, '#ff2d95');
     if (game.score > best) {
       best = game.score;
-      localStorage.setItem(BEST_KEY, String(best));
+      store.set(BEST_KEY, best);
     }
     syncHud();
     const won = game.status === 'won';
@@ -508,74 +574,99 @@ if (typeof window !== 'undefined') {
   window.addEventListener('keydown', (e) => {
     if (e.key === ' ' || e.code === 'Space') {
       e.preventDefault();
+      unlockAudio();
       if (game.status === 'ready' || game.status === 'over' || game.status === 'won') {
-        if (game.status !== 'ready') reset();
-        begin();
+        startOrRestart();
       } else {
-        game.status === 'running' ? L.pause(game) : L.resume(game);
-        game.status === 'paused'
-          ? showOverlay('⏸ Paused', 'Score ' + game.score, 'SPACE to resume')
-          : hideOverlay();
+        togglePauseUI();
       }
       return;
     }
-    if (e.key === 'r' || e.key === 'R') { reset(); begin(); return; }
+    if (e.key === 'r' || e.key === 'R') { unlockAudio(); reset(); begin(); return; }
     if (e.key === 'm' || e.key === 'M') { toggleSound(); return; }
 
     const dir = KEYMAP[e.key];
     if (dir) {
       e.preventDefault();
+      unlockAudio();
       press(dir);
     }
   });
 
-  // D-pad buttons
+  /* ------------------------ touch: D-pad ------------------------------- */
   document.querySelectorAll('[data-dir]').forEach((btn) => {
-    const go = (e) => {
+    btn.addEventListener('pointerdown', (e) => {
       e.preventDefault();
+      unlockAudio();
       press(btn.dataset.dir);
-    };
-    btn.addEventListener('pointerdown', go);
+    });
+    // long-press must not open the iOS copy/callout menu
+    btn.addEventListener('contextmenu', (e) => e.preventDefault());
   });
 
-  // Swipe on the board
+  /* ------------------------ touch: swipe ------------------------------- *
+   * Listeners sit on the whole stage, not just the canvas, so the swipe
+   * target is as large as possible on a phone.
+   *
+   * A short swipe is deliberately NOT a pause gesture: sub-threshold
+   * flicks are common on touchscreens and pausing a live run by accident
+   * is worse than ignoring the input. Use the ⏸ button to pause.        */
+  const SWIPE_PX = 24;
   let touchStart = null;
-  canvas.addEventListener('touchstart', (e) => {
-    touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+
+  stage.addEventListener('touchstart', (e) => {
+    unlockAudio();
+    const t = e.touches[0];
+    touchStart = { x: t.clientX, y: t.clientY };
   }, { passive: true });
 
-  canvas.addEventListener('touchend', (e) => {
+  stage.addEventListener('touchend', (e) => {
     if (!touchStart) return;
-    const dx = e.changedTouches[0].clientX - touchStart.x;
-    const dy = e.changedTouches[0].clientY - touchStart.y;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStart.x;
+    const dy = t.clientY - touchStart.y;
     touchStart = null;
 
-    if (Math.abs(dx) < 24 && Math.abs(dy) < 24) {
-      // tap = start / restart
-      if (game.status === 'ready') begin();
-      else if (game.status === 'over' || game.status === 'won') { reset(); begin(); }
-      else game.status === 'running' ? L.pause(game) : L.resume(game);
-      if (game.status === 'paused') showOverlay('⏸ Paused', 'Score ' + game.score, 'TAP to resume');
-      else hideOverlay();
-      return;
+    if (Math.abs(dx) < SWIPE_PX && Math.abs(dy) < SWIPE_PX) {
+      if (game.status === 'ready' || game.status === 'over' || game.status === 'won') {
+        if (game.status !== 'ready') reset();
+        begin();
+      }
+      return; // running or paused: a tap does nothing
     }
     press(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
   }, { passive: true });
 
+  stage.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  /* --------------------------- buttons --------------------------------- */
   overlay.addEventListener('click', () => {
-    if (game.status === 'over' || game.status === 'won') reset();
-    begin();
+    unlockAudio();
+    if (game.status === 'paused') { togglePauseUI(); return; }
+    startOrRestart();
+  });
+
+  pauseBtn.addEventListener('click', () => {
+    unlockAudio();
+    togglePauseUI('TAP ▶ to resume');
   });
 
   function toggleSound() {
     muted = !muted;
-    localStorage.setItem('pambu.muted', muted ? '1' : '0');
+    store.set('pambu.muted', muted ? '1' : '0');
     syncHud();
-    if (!muted) sfx.turn();
+    if (!muted) { unlockAudio(); sfx.turn(); }
   }
   soundBtn.addEventListener('click', toggleSound);
 
+  /* Re-measure whenever the stage box changes. On phones that happens on
+     rotation AND whenever the browser URL bar collapses/expands, which a
+     plain window resize listener does not always catch. */
   window.addEventListener('resize', resize);
+  window.addEventListener('orientationchange', () => setTimeout(resize, 60));
+  if (window.ResizeObserver) {
+    new window.ResizeObserver(resize).observe(stage);
+  }
 
   /* Console handle — handy for poking at the game in devtools, and used by
      the browser smoke test in test/browser.smoke.test.js. */

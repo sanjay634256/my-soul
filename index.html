@@ -13,7 +13,10 @@
   <main class="shell">
     <header class="topbar">
       <h1 class="logo"><span class="tamil">பாம்பு</span><span class="latin">PAMBU</span></h1>
-      <button id="sound-btn" class="icon-btn" type="button" aria-label="Toggle sound">🔊</button>
+      <div class="top-actions">
+        <button id="pause-btn" class="icon-btn" type="button" aria-label="Pause or resume">⏸</button>
+        <button id="sound-btn" class="icon-btn" type="button" aria-label="Toggle sound">🔊</button>
+      </div>
     </header>
 
     <section class="hud" aria-live="polite">
@@ -23,7 +26,7 @@
       <div class="stat"><span class="label">LENGTH</span><span class="value" id="length">3</span></div>
     </section>
 
-    <section class="stage">
+    <section class="stage" id="stage">
       <canvas id="board" width="630" height="630" aria-label="Snake game board"></canvas>
 
       <div id="overlay" class="overlay">
