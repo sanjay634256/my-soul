@@ -1,151 +1,147 @@
 <div align="center">
 
-# 🐍 பாம்பு · PAMBU
+# 🔥 FIRE ZONE · தீ மண்டலம்
 
-**A neon snake game with zero dependencies.**
+**A 3D open-world vehicular-combat game.** Plus a snake game, because it got here first.
 
-Canvas + vanilla JS. No build step, no `node_modules`, no framework.
-Open `index.html` and play.
+No build step. No `node_modules` for the game. No framework.
 
 </div>
 
 ---
 
-## Play it
+## Run it
 
 ```bash
-# Option 1 — any static server
+git clone https://github.com/sanjay634256/my-soul.git
+cd my-soul
 node server.js
-# -> http://localhost:3000
-
-# Option 2 — literally just open the file
-open index.html        # macOS
-xdg-open index.html    # Linux
-start index.html       # Windows
+# FIRE ZONE  ->  http://localhost:3000/
+# PAMBU      ->  http://localhost:3000/pambu/
 ```
 
-`server.js` binds to `0.0.0.0`, so it also works behind proxies and in
-sandboxed preview environments. Override with `PORT=8080 node server.js`.
+`server.js` binds to `0.0.0.0` and serves `.mjs` as `text/javascript`, so it works
+behind proxies and sandboxed previews. Override with `PORT=8080 node server.js`.
 
-## Controls
+To play from your phone on the same Wi-Fi: `http://<your-laptop-LAN-IP>:3000/`
+— touch controls appear automatically on coarse pointers.
+
+> `open index.html` directly will **not** work. ES modules are blocked on `file://`.
+> You need a server.
+
+---
+
+## FIRE ZONE
+
+You drive an armed buggy through a procedurally generated city. Hostiles hold the
+streets. Clear the kill quota, then reach the extraction zone and hold it.
+
+### Controls
 
 | Input | Action |
-|---|---|
-| `↑` `↓` `←` `→` or `WASD` | Steer |
-| `Space` | Start / pause / resume |
-| `R` | Restart |
-| `M` | Mute |
-| Swipe | Mobile steering (anywhere on the board) |
-| Tap | Start / restart |
-| ⏸ button | Pause / resume |
+| --- | --- |
+| `W` `A` `S` `D` / arrows | drive and steer |
+| `SPACE` | fire turret |
+| `SHIFT` | handbrake drift |
+| `R` | reload |
+| `ESC` | pause |
 
-Touch devices get an on-screen D-pad automatically, and the board shrinks to
-whatever vertical space is left so the pad is never pushed off-screen.
+On a phone: left thumb on the virtual stick, right thumb on the fire / drift /
+reload / brake pads.
 
-### Mobile notes
+### What is actually simulated
 
-Four things that only break on a phone, all handled:
+Everything below runs in `js/sim.mjs` as plain math — no rendering involved, which
+is why it can be unit-tested headlessly.
 
-- **iOS Safari private mode** throws on every `localStorage` access. All reads
-  and writes go through a guarded wrapper, so a lost high score never turns
-  into a crashed `gameOver()`.
-- **iOS starts an `AudioContext` suspended** and only lets it resume inside a
-  user gesture. Every gesture handler (key, D-pad, swipe, buttons) calls
-  `unlockAudio()`, otherwise the game is silently mute.
-- **A short swipe is not a pause gesture.** Sub-threshold flicks are common on
-  touchscreens, and pausing a live run by accident is worse than ignoring the
-  input — use the ⏸ button.
-- **The mobile URL bar resizes the viewport.** The layout is flex + `100dvh`,
-  and a `ResizeObserver` on the stage re-measures the canvas on rotation and
-  on URL-bar show/hide.
+- **Vehicle physics** — engine power with a speed-falloff headroom, quadratic drag,
+  rolling resistance, a grip circle with a separate handbrake grip, speed-sensitive
+  steering, lateral drift, and yaw inertia. Top speed 46 m/s (166 km/h).
+- **Collision** — circle-vs-AABB resolution against a uniform spatial hash, with
+  velocity reflection on impact. Substepped so a fast car cannot tunnel through a wall.
+- **Ballistics** — bullets are swept in 0.25 m substeps against the same hash, so a
+  130 m/s round cannot skip over a thin building. Fired from turret height (~2.3 m)
+  with a real 3D pitch down to the target's chest, not a flat 2D ray.
+- **Hit volumes** — every hostile is three overlapping spheres (legs, torso, head).
+  Headshots do 2×. A test asserts there is no unhittable gap between 0.05 m and 1.85 m.
+- **Hostile AI** — alerting, closing to a stand-off distance, strafing, breaking line
+  of sight, and firing with spread. Fully RNG-injectable, so runs are reproducible.
+- **Chain explosions** — barrels take damage, blow up, and set off their neighbours.
+- **Health** — armour absorbs 60% until depleted, then regenerates after 6 s idle.
+  Crash damage scales with speed lost (1.3 per m/s), so a 30 m/s hit costs ~16 hp
+  after armour rather than being an instant death.
+- **Procedural city** — `js/layout.mjs` grows a 240 m street grid and subdivides each
+  block into lots (1×1 up to 3×3), with plazas, empty lots, and 46 explosive barrels.
+  Deterministic per seed. The default seed produces **230 buildings, 331 colliders,
+  447 props, 40 spawn points**.
 
-## Rules
+### Rendering
 
-- Eat the pink orb: **+10 points**, snake grows by one.
-- Every **4 orbs** = one level, and the game gets faster.
-- Speed ramps from **150 ms/tick** down to a floor of **65 ms/tick**.
-- Hit a wall → dead. Hit yourself → dead.
-- Chase your own tail? That's fine — the tail cell vacates on the same tick.
-- Fill the entire 21×21 board and you win.
+Three.js r169, vendored at `vendor/three.module.min.js` (687 KB) because CDNs are
+not something a game should depend on. `js/world.mjs` builds the city meshes,
+`js/entities.mjs` the cars and hostiles, `js/hud.mjs` the DOM overlay and radar,
+`js/audio.mjs` the WebAudio SFX. The sim runs on a fixed 1/120 s accumulator and the
+renderer interpolates between ticks.
 
-High score and mute state persist in `localStorage`.
-
-## Project layout
-
-```
-index.html             Markup + HUD
-styles.css             Neon theme, responsive + touch layout
-game.js                Part 1: pure game logic  (Node + browser)
-                       Part 2: canvas render / input / audio  (browser only)
-server.js              Zero-dependency static file server
-test/game.test.js      Logic tests against the real exported module
-test/browser.smoke.test.js   Desktop: DOM stub drives boot -> play -> die
-test/browser.mobile.test.js  Mobile: throwing storage, suspended audio, swipe
-test/helpers/dom.js    Shared DOM/canvas/AudioContext stub
-```
-
-`game.js` splits the simulation from the rendering on purpose: everything
-that decides *what happens* is a pure function with no DOM access, so it runs
-unchanged under Node for testing.
+---
 
 ## Tests
 
 ```bash
-npm test
+npm test          # node --test, zero dependencies
 ```
 
-43 tests cover the shipped module (`require('../game.js')` — nothing is
-re-implemented in the tests).
+**139 tests.** They are deterministic — the sim's RNG is injectable, so a given seed
+always replays identically.
 
-**Logic** (`test/game.test.js`):
+| File | Covers |
+| --- | --- |
+| `test/sim.test.mjs` | vehicle physics, collision, ballistics, hit volumes, AI, mission state, explosions |
+| `test/layout.test.mjs` | city determinism, no building on a road, no building overlap, spawns clear of geometry, grid-vs-brute-force agreement + perf |
+| `test/integration.test.mjs` | full headless matches: a complete win with extraction, multi-seed city stability, no NaN, no arena escape, bounded bullet pool, 60 fps budget |
+| `test/wiring.test.mjs` | every named import exists in its target, every `getElementById` has a matching id, every `data-btn` is consumed, `server.js` has a MIME type for every extension on disk |
+| `test/game.test.js`, `test/browser.*.test.js` | PAMBU |
 
-- initial state, head-first body orientation
-- food never spawns on the snake, including when `rand()` returns exactly `1.0`
-- movement, queued turns, rejected 180° reversals
-- eating → growth, score, respawn, level-up
-- wall death and self-collision death
-- the tail-chase edge case, and its inverse (eating on the tail cell kills)
-- speed ramp and the `MIN_SPEED_MS` clamp
-- the status machine (`ready → running → paused → over → won`)
-- a full board is a win, not a crash
+`test/wiring.test.mjs` exists because importing a name that does not exist is a
+**link-time** `SyntaxError` — it kills the whole module, and no amount of
+`node --check` catches it.
 
-**Desktop browser layer** (`test/browser.smoke.test.js`) — stubs the DOM and
-drives the real canvas/input code, asserting on actual HUD values:
+### What the tests do *not* cover
 
-- boot renders, canvas ops are issued, overlay shows
-- Space starts, arrows/WASD/D-pad steer, rejected reversals never land
-- eating updates score + length in the DOM
-- pause/resume, restart, mute persistence
-- wall death writes the best score to `localStorage`
+There is no headless browser available in the build environment, so `js/world.mjs`,
+`js/entities.mjs`, `js/hud.mjs` and `js/main.mjs` have never actually executed. They
+are covered by `node --check` and by the static wiring assertions only. The
+gameplay, physics and combat are genuinely tested; the rendering is reasoned about.
 
-**Mobile browser layer** (`test/browser.mobile.test.js`) — separate process
-with a *throwing* `localStorage` and a *suspended* `AudioContext`:
+---
 
-- boot, mute and `gameOver()` all survive storage throwing
-- every gesture path resumes the suspended `AudioContext`
-- swipe steering on each axis, diagonal swipes resolve to the dominant axis
-- a sub-threshold flick does **not** pause a live run
-- the ⏸ button pauses/resumes and its icon tracks the state
-- long-press cannot open the native callout menu
+## PAMBU 🐍
 
-Every one of these is mutation-tested: seeding the corresponding bug
-(unguarded `setItem`, missing `resume()`, tap-to-pause, listeners on the
-canvas instead of the stage, D-pad not unlocking audio) fails the suite.
+The original: a neon snake game. Canvas + vanilla JS, no dependencies.
 
-## Tuning
-
-All game feel lives in the constants at the top of `game.js`:
-
-```js
-const COLS = 21;             // board width in cells
-const ROWS = 21;             // board height in cells
-const START_SPEED_MS = 150;  // tick interval at level 1
-const MIN_SPEED_MS = 65;     // fastest the game will ever run
-const SPEED_STEP_MS = 7;     // speedup per level
-const FOODS_PER_LEVEL = 4;   // orbs per level
-const POINTS_PER_FOOD = 10;
+```bash
+node server.js     # -> http://localhost:3000/pambu/
 ```
 
-## License
+Arrows or WASD to steer, `SPACE` to pause. Swipe on touch.
 
-MIT
+---
+
+## Layout
+
+```
+index.html          FIRE ZONE shell (screens, HUD, touch pads)
+styles.css          angular amber/olive tactical theme
+server.js           zero-dependency static server
+js/sim.mjs          pure simulation core — physics, ballistics, AI, mission
+js/layout.mjs       procedural city generation
+js/world.mjs        three.js scene construction
+js/entities.mjs     car and hostile meshes
+js/hud.mjs          HUD overlay and radar
+js/audio.mjs        WebAudio sound effects
+js/input.mjs        keyboard and touch input
+js/main.mjs         game loop, camera, wiring
+vendor/             three.js r169
+test/               139 tests
+pambu/              the snake game
+```

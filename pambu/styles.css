@@ -1,0 +1,286 @@
+:root {
+  --bg: #05050c;
+  --panel: #0b0b18;
+  --cyan: #00e5ff;
+  --mint: #7dfff0;
+  --pink: #ff2d95;
+  --text: #d7f7ff;
+  --dim: #6d8a99;
+  --radius: 14px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  /* dvh tracks the mobile URL bar; vh does not. Fallback for old browsers. */
+  height: 100dvh;
+  background:
+    radial-gradient(1200px 700px at 50% -10%, #12203a 0%, transparent 60%),
+    var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, "Noto Sans Tamil", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  /* kill the iOS blue flash + long-press callout on game controls */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.shell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 16px 26px;
+  max-width: 720px;
+  margin: 0 auto;
+  min-height: 0;
+}
+
+.top-actions { display: flex; gap: 8px; }
+
+/* ---------------- top bar ---------------- */
+.topbar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  margin: 0;
+  font-size: 26px;
+  letter-spacing: 2px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  line-height: 1;
+}
+
+.logo .tamil {
+  font-size: 30px;
+  color: var(--mint);
+  text-shadow: 0 0 18px rgba(125, 255, 240, 0.55);
+}
+
+.logo .latin {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--pink);
+  text-shadow: 0 0 14px rgba(255, 45, 149, 0.5);
+}
+
+.icon-btn {
+  background: var(--panel);
+  border: 1px solid rgba(0, 229, 255, 0.22);
+  color: var(--text);
+  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+.icon-btn:hover { transform: translateY(-1px); border-color: var(--cyan); }
+.icon-btn:active { transform: translateY(0) scale(0.95); }
+
+/* ---------------- hud ---------------- */
+.hud {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.stat {
+  background: var(--panel);
+  border: 1px solid rgba(0, 229, 255, 0.16);
+  border-radius: var(--radius);
+  padding: 10px 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.stat .label {
+  font-size: 9.5px;
+  letter-spacing: 1.6px;
+  color: var(--dim);
+  font-weight: 700;
+}
+
+.stat .value {
+  font-size: 22px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--mint);
+  text-shadow: 0 0 12px rgba(125, 255, 240, 0.35);
+}
+
+.stat .value.best { color: var(--pink); text-shadow: 0 0 12px rgba(255, 45, 149, 0.4); }
+
+/* ---------------- stage ---------------- */
+.stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: 620px;
+  max-height: 620px;
+  border-radius: 18px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: #07070f;
+  border: 1px solid rgba(0, 229, 255, 0.22);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.6),
+    0 0 44px rgba(0, 229, 255, 0.14),
+    inset 0 0 60px rgba(0, 229, 255, 0.05);
+}
+
+#board {
+  border-radius: 14px;
+  display: block;
+  touch-action: none;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  padding: 20px;
+  background: rgba(5, 5, 14, 0.82);
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+  animation: fade 0.22s ease;
+}
+
+.overlay[hidden] { display: none; }
+
+@keyframes fade { from { opacity: 0 } to { opacity: 1 } }
+
+.overlay h2 {
+  margin: 0;
+  font-size: clamp(28px, 6vw, 44px);
+  color: var(--mint);
+  text-shadow: 0 0 26px rgba(125, 255, 240, 0.6);
+}
+
+.overlay p {
+  margin: 0;
+  color: var(--text);
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.overlay .hint {
+  margin-top: 8px;
+  font-size: 12px;
+  letter-spacing: 1.4px;
+  color: var(--dim);
+  text-transform: uppercase;
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes pulse { 0%, 100% { opacity: 0.45 } 50% { opacity: 1 } }
+
+/* ---------------- d-pad ---------------- */
+.pad {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+}
+
+.pad-row { display: flex; gap: 6px; }
+
+.pad-btn {
+  width: 58px;
+  height: 58px;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 229, 255, 0.28);
+  background: var(--panel);
+  color: var(--cyan);
+  font-size: 17px;
+  cursor: pointer;
+  touch-action: none;
+  transition: transform 0.08s ease, background 0.08s ease;
+}
+
+.pad-btn:active {
+  transform: scale(0.92);
+  background: rgba(0, 229, 255, 0.16);
+}
+
+/* ---------------- legend ---------------- */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 18px;
+  font-size: 11.5px;
+  color: var(--dim);
+  text-align: center;
+}
+
+kbd {
+  font-family: inherit;
+  font-size: 10.5px;
+  background: var(--panel);
+  border: 1px solid rgba(0, 229, 255, 0.22);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  padding: 2px 6px;
+  color: var(--text);
+}
+
+/* ---------------- touch devices ---------------- */
+@media (hover: none) and (pointer: coarse) {
+  html, body { overflow: hidden; }
+
+  .pad { display: flex; flex: 0 0 auto; }
+  .legend { display: none; }
+  .shell { gap: 8px; padding: 10px 12px 14px; }
+  .logo { font-size: 22px; }
+  .logo .tamil { font-size: 25px; }
+  .stat { padding: 6px 4px; border-radius: 10px; }
+  .stat .value { font-size: 18px; }
+  .stat .label { font-size: 8.5px; letter-spacing: 1.2px; }
+  .icon-btn { width: 38px; height: 38px; }
+  .topbar { flex: 0 0 auto; }
+  .hud { flex: 0 0 auto; }
+
+  /* 44px is the minimum comfortable touch target; 58px is a thumb target. */
+  .pad-btn { width: 62px; height: 54px; font-size: 18px; }
+}
+
+/* Short viewports (landscape phones): shrink the pad, keep the board square. */
+@media (max-height: 520px) {
+  .shell { gap: 6px; padding: 6px 10px 8px; }
+  .logo { font-size: 18px; }
+  .logo .tamil { font-size: 20px; }
+  .stat .value { font-size: 15px; }
+  .stat { padding: 4px 2px; }
+  .pad-btn { width: 54px; height: 40px; font-size: 15px; }
+  .pad { gap: 4px; }
+  .pad-row { gap: 4px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay .hint { animation: none; opacity: 0.8; }
+}

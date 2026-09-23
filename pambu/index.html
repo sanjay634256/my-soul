@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<meta name="theme-color" content="#07070f" />
+<meta name="description" content="PAMBU — a neon snake game. Zero dependencies, runs anywhere." />
+<title>பாம்பு · PAMBU — Neon Snake</title>
+<link rel="stylesheet" href="styles.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐍</text></svg>" />
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <h1 class="logo"><span class="tamil">பாம்பு</span><span class="latin">PAMBU</span></h1>
+      <div class="top-actions">
+        <button id="pause-btn" class="icon-btn" type="button" aria-label="Pause or resume">⏸</button>
+        <button id="sound-btn" class="icon-btn" type="button" aria-label="Toggle sound">🔊</button>
+      </div>
+    </header>
+
+    <section class="hud" aria-live="polite">
+      <div class="stat"><span class="label">SCORE</span><span class="value" id="score">0</span></div>
+      <div class="stat"><span class="label">BEST</span><span class="value best" id="best">0</span></div>
+      <div class="stat"><span class="label">LEVEL</span><span class="value" id="level">1</span></div>
+      <div class="stat"><span class="label">LENGTH</span><span class="value" id="length">3</span></div>
+    </section>
+
+    <section class="stage" id="stage">
+      <canvas id="board" width="630" height="630" aria-label="Snake game board"></canvas>
+
+      <div id="overlay" class="overlay">
+        <h2 id="overlay-title">பாம்பு</h2>
+        <p id="overlay-body">Neon Snake</p>
+        <p id="overlay-hint" class="hint">SPACE / TAP to start</p>
+      </div>
+    </section>
+
+    <section class="pad" aria-label="Touch controls">
+      <div class="pad-row">
+        <button class="pad-btn" data-dir="up" type="button" aria-label="Up">▲</button>
+      </div>
+      <div class="pad-row">
+        <button class="pad-btn" data-dir="left" type="button" aria-label="Left">◀</button>
+        <button class="pad-btn" data-dir="down" type="button" aria-label="Down">▼</button>
+        <button class="pad-btn" data-dir="right" type="button" aria-label="Right">▶</button>
+      </div>
+    </section>
+
+    <footer class="legend">
+      <span><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> or <kbd>WASD</kbd> move</span>
+      <span><kbd>Space</kbd> start / pause</span>
+      <span><kbd>R</kbd> restart</span>
+      <span><kbd>M</kbd> mute</span>
+    </footer>
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>

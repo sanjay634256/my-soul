@@ -8,7 +8,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const G = require('../game.js');
+const G = require('../pambu/game.js');
 
 /** Deterministic RNG that walks a fixed list of values, then repeats. */
 function seeded(values) {
