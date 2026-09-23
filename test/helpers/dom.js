@@ -10,7 +10,7 @@
 
 const path = require('node:path');
 
-const GAME_PATH = path.join(__dirname, '..', '..', 'game.js');
+const GAME_PATH = path.join(__dirname, '..', '..', 'pambu', 'game.js');
 
 function installDom(options) {
   const opts = options || {};
